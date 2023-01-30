@@ -28,6 +28,7 @@ class Helper
     {
         $configObject = $config->getObject(false);
         $client = $config->getClient($email);
+        $hostDomain = strtok(clean_domain($hostDomain), ':');
 
         $uniqueId = isset($configObject->id)
             ? $client['id']
