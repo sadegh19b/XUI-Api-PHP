@@ -1,0 +1,28 @@
+{
+    "name": "sadegh19b/xui-api-php",
+    "description": "This library is for interfaces with the X-UI API using PHP.",
+    "type": "library",
+    "homepage": "https://github.com/sadegh19b/XUI-Api-PHP",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sadegh Barzegar",
+            "email": "sadegh19b@gmail.com",
+            "homepage": "https://github.com/sadegh19b",
+            "role": "Developer"
+        }
+    ],
+    "require": {
+        "php": "^8.0",
+        "guzzlehttp/guzzle": ">=7.5"
+    },
+    "autoload": {
+        "psr-4": {
+            "XUI\\": "src/"
+        },
+        "files": [
+            "helpers.php"
+        ]
+    },
+    "minimum-stability": "dev"
+}
