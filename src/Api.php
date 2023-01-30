@@ -52,7 +52,7 @@ class Api
     {
         $response = $this->request('inbounds');
 
-        return $this->getResponseStatus($response) ? $this->getResponseObj($response) : [];
+        return $this->getRespondedInArray($response);
     }
 
     public function getInbound(int $id): array
@@ -60,7 +60,7 @@ class Api
         $this->setInboundId($id);
         $response = $this->request('getInbound');
 
-        return $this->getResponseStatus($response) ? $this->getResponseObj($response) : [];
+        return $this->getRespondedInArray($response);
     }
 
     public function addInbound(
@@ -85,14 +85,14 @@ class Api
 
         $response = $this->request('addInbound', $config->getArray());
 
-        return $this->getResponseStatus($response) ? $this->getResponseObj($response) : [];
+        return $this->getRespondedInArray($response);
     }
 
     public function addInboundByConfig(ConfigBuilder $config): array
     {
         $response = $this->request('addInbound', $config->getArray());
 
-        return $this->getResponseStatus($response) ? $this->getResponseObj($response) : [];
+        return $this->getRespondedInArray($response);
     }
 
     public function editInbound(
@@ -121,7 +121,7 @@ class Api
 
         $response = $this->request('updateInbound', $config->getArray());
 
-        return $this->getResponseStatus($response) ? $this->getResponseObj($response) : [];
+        return $this->getRespondedInArray($response);
     }
 
     public function editInboundByConfig(int $id, ConfigBuilder $config): array
@@ -135,7 +135,7 @@ class Api
 
         $response = $this->request('updateInbound', $_config);
 
-        return $this->getResponseStatus($response) ? $this->getResponseObj($response) : [];
+        return $this->getRespondedInArray($response);
     }
 
     public function removeInbound(int $id): bool
@@ -167,7 +167,7 @@ class Api
 
         $response = $this->request('updateInbound', $config->getArray());
 
-        return $this->getResponseStatus($response) ? $config->getClient($email) : [];
+        return $this->getRespondedInArray($response);
     }
 
     public function editClient(
@@ -188,7 +188,7 @@ class Api
 
         $response = $this->request('updateInbound', $config->getArray());
 
-        return $this->getResponseStatus($response) ? $config->getClient($email) : [];
+        return $this->getRespondedInArray($response);
     }
 
     public function removeClient(int $inboundId, string $email): bool
@@ -240,6 +240,11 @@ class Api
         );
 
         return json_decode($response->getBody()->getContents(), true);
+    }
+
+    private function getRespondedInArray(mixed $response): array
+    {
+        return $this->getResponseStatus($response) ? $this->getResponseObj($response) : [];
     }
 
     private function getResponseStatus(?array $response): bool
