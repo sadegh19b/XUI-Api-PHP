@@ -15,6 +15,10 @@ class Api
     private GuzzleHttp\Client $guzzleHttp;
 
     private int $inboundId;
+
+    private bool $responseStatus;
+    private string $responseMessage;
+
     private string $cookiePath = BASE_PATH.'/storage/app/x-ui-cookie.json';
 
     protected array $endpoints = [
@@ -50,17 +54,14 @@ class Api
 
     public function getInbounds(): array
     {
-        $response = $this->request('inbounds');
-
-        return $this->getRespondedInArray($response);
+        return $this->request('inbounds');
     }
 
     public function getInbound(int $id): array
     {
         $this->setInboundId($id);
-        $response = $this->request('getInbound');
 
-        return $this->getRespondedInArray($response);
+        return $this->request('getInbound');
     }
 
     public function addInbound(
@@ -83,16 +84,12 @@ class Api
             ->setTotal($limitSize)
             ->setExpiryTime($limitDays, true);
 
-        $response = $this->request('addInbound', $config->getArray());
-
-        return $this->getRespondedInArray($response);
+        return $this->request('addInbound', $config->getArray());
     }
 
     public function addInboundByConfig(ConfigBuilder $config): array
     {
-        $response = $this->request('addInbound', $config->getArray());
-
-        return $this->getRespondedInArray($response);
+        return $this->request('addInbound', $config->getArray());
     }
 
     public function editInbound(
@@ -119,9 +116,7 @@ class Api
             ->setTotal($limitSize)
             ->setExpiryTime($limitDays, true);
 
-        $response = $this->request('updateInbound', $config->getArray());
-
-        return $this->getRespondedInArray($response);
+        return $this->request('updateInbound', $config->getArray());
     }
 
     public function editInboundByConfig(int $id, ConfigBuilder $config): array
@@ -133,17 +128,14 @@ class Api
             throw new \RuntimeException('Invalid Inbound ID or Configuration Provided!');
         }
 
-        $response = $this->request('updateInbound', $_config);
-
-        return $this->getRespondedInArray($response);
+        return $this->request('updateInbound', $_config);
     }
 
     public function removeInbound(int $id): bool
     {
         $this->setInboundId($id);
-        $response = $this->request('deleteInbound');
 
-        return $this->getResponseStatus($response);
+        return $this->request('deleteInbound');
     }
 
     public function addClient(
@@ -162,12 +154,14 @@ class Api
         if ($isReplaceDefaultClient && $config->getDefaultClient()['email'] === '') {
             $config->setDefaultClient($email, $limitIp, $limitSize, $limitDays);
         } else {
+            if (! empty($config->getClient($email))) {
+                $email = time().'_'.$email;
+            }
+
             $config->addClient($email, $limitIp, $limitSize, $limitDays);
         }
 
-        $response = $this->request('updateInbound', $config->getArray());
-
-        return $this->getRespondedInArray($response);
+        return $this->request('updateInbound', $config->getArray());
     }
 
     public function editClient(
@@ -186,9 +180,7 @@ class Api
             ->load($inbound)
             ->updateClient($email, $limitIp, $limitSize, $limitDays, $newEmail);
 
-        $response = $this->request('updateInbound', $config->getArray());
-
-        return $this->getRespondedInArray($response);
+        return $this->request('updateInbound', $config->getArray());
     }
 
     public function removeClient(int $inboundId, string $email): bool
@@ -204,9 +196,7 @@ class Api
             $config->addClient('', 0, 0, 0);
         }
 
-        $response = $this->request('updateInbound', $config->getArray());
-
-        return $this->getResponseStatus($response);
+        return $this->request('updateInbound', $config->getArray());
     }
 
     private function login(): void
@@ -228,7 +218,10 @@ class Api
             throw new \RuntimeException('Invalid request path!');
         }
 
-        $response = $this->guzzleHttp->request($this->getMethod($path), $this->getEndpoint($path), array_merge(
+        $request = $this->guzzleHttp->request(
+            $this->getMethod($path),
+            $this->getEndpoint($path),
+            array_merge(
                 [
                     'cookies' => $this->getCookie(),
                     //'http_errors' => false,
@@ -236,30 +229,29 @@ class Api
                         //'User-Agent' => 'Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.1.13) Gecko/20080311 Firefox/2.0.0.13',
                         'Content-Type' => $this->getContentType($path),
                     ]
-                ], $this->getRequestParams($path, $params))
+                ],
+                $this->getRequestParams($path, $params)
+            )
         );
 
-        return json_decode($response->getBody()->getContents(), true);
+        $response = json_decode($request->getBody()->getContents(), true);
+
+        $this->responseMessage = $response['msg'] ?? '';
+        $this->responseStatus = $response['success'] ?? false;
+
+        return ($path === 'deleteInbound')
+            ? $this->responseStatus
+            : $response['obj'] ?? [];
     }
 
-    private function getRespondedInArray(mixed $response): array
+    public function isResponseSuccess(): bool
     {
-        return $this->getResponseStatus($response) ? $this->getResponseObj($response) : [];
+        return $this->responseStatus ?? false;
     }
 
-    private function getResponseStatus(?array $response): bool
+    public function getResponseMessage(): string
     {
-        return $response['success'] ?? false;
-    }
-
-    private function getResponseObj(?array $response): array
-    {
-        return $response['obj'] ?? [];
-    }
-
-    private function getResponseMsg(?array $response): string
-    {
-        return $response['msg'] ?? '';
+        return $this->responseMessage ?? '';
     }
 
     private function setInboundId(int $id): void
@@ -290,6 +282,8 @@ class Api
             file_put_contents($this->cookiePath, '[]');
 
             $this->login();
+
+            return;
         }
 
         $cookieData = json_decode(file_get_contents($this->cookiePath), true)[0];

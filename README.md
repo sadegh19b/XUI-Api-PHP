@@ -25,11 +25,26 @@ Then, You must `require` composer autoload to you can work with library.
 
 require __DIR__.'/vendor/autoload.php';
 
-$xui_api = new \XUI\Api('https://domain.com', 'username', 'password');
-$config = (new \XUI\ConfigBuilder)->setSecurity('tls', 'domain.com');
+$api = new \XUI\Api('https://domain.com', 'username', 'password');
 
-$request = $xui_api->addInbound('remark', 'vmess', 2000);
-$request = $xui_api->addInboundByConfig($config);
+// After request to add inbound in return you can get added inbound response that delivered from x-ui api
+$response = $api->addInbound('remark', 'vmess', 2000);
+
+// After successful x-ui api response, you can get inbound data in array
+echo $response['id'];
+echo $response['remark'];
+
+// You can get response status is success that delivered from x-ui api
+$api->isResponseSuccess();
+
+// You can get response message that delivered from x-ui api
+$api->getResponseMessage();
+
+// You can build x-ui config by `XUI\ConfigBuilder`
+$config = (new \XUI\ConfigBuilder('vless'))->setSecurity('tls', 'domain.com');
+
+// You can add inbound by config
+$response = $api->addInboundByConfig($config);
 
 // and more ...
 ```

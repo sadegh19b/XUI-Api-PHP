@@ -24,11 +24,13 @@ class Helper
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
-    public static function generateLink(ConfigBuilder $config, string $hostDomain, ?string $email): string
+    public static function generateLink(ConfigBuilder $config, string $hostDomain, ?string $email, string $remarkAppend = ''): string
     {
         $configObject = $config->getObject(false);
         $client = $config->getClient($email);
         $hostDomain = strtok(clean_domain($hostDomain), ':');
+        $remark = $configObject->remark;
+        $remark .= ($remarkAppend !== '') ? '-'.$remarkAppend : '';
 
         $uniqueId = isset($configObject->id)
             ? $client['id']
@@ -36,18 +38,18 @@ class Helper
 
         if (isset($configObject->id)) {
             $path = match ($configObject->streamSettings->network) {
-                'tcp' => $configObject->streamSettings->tcpSettings->header->request->path[0],
-                'ws' => $configObject->streamSettings->wsSettings->path,
+                'tcp' => $configObject->streamSettings->tcpSettings->header->request->path[0] ?? '',
+                'ws' => $configObject->streamSettings->wsSettings->path ?? '',
             };
 
             $host = match ($configObject->streamSettings->network) {
-                'tcp' => $configObject->streamSettings->tcpSettings->header->request->headers->Host[0],
-                'ws' => $configObject->streamSettings->wsSettings->headers->Host,
+                'tcp' => $configObject->streamSettings->tcpSettings->header->request->headers->Host[0] ?? '',
+                'ws' => $configObject->streamSettings->wsSettings->headers->Host ?? '',
             };
 
             $headerType = match ($configObject->streamSettings->network) {
-                'tcp' => $configObject->streamSettings->tcpSettings->header->type,
-                'ws' => $configObject->streamSettings->wsSettings->header->type,
+                'tcp' => $configObject->streamSettings->tcpSettings->header->type ?? '',
+                'ws' => $configObject->streamSettings->wsSettings->header->type ?? '',
             };
 
             $vlessStreamSettings = match ($configObject->streamSettings->network) {
@@ -66,7 +68,7 @@ class Helper
                 $configObject->streamSettings->network,
                 $configObject->streamSettings->security,
                 $vlessStreamSettings ?? '',
-                $configObject->remark
+                $remark
             ),
             'vmess' => sprintf(
                 '%s://%s',
@@ -74,7 +76,7 @@ class Helper
                 base64_encode(
                     json_encode([
                         'v' => '2',
-                        'ps' => $configObject->remark,
+                        'ps' => $remark,
                         'add' => $hostDomain,
                         'port' => $configObject->port,
                         'id' => $uniqueId,

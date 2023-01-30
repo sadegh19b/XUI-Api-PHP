@@ -68,6 +68,11 @@ class ConfigBuilder
             $config = (array) $config;
         }
 
+        // Check config is not empty and compare given config to default config keys.
+        if (empty($config) || count(array_intersect_key(array_keys($config), array_keys($this->default))) < 12) {
+            throw new \InvalidArgumentException('Invalid config!');
+        }
+
         $this->config = $config;
 
         $this->sanitizeLoadConfig();
@@ -239,6 +244,14 @@ class ConfigBuilder
         }
 
         return $_client;
+    }
+
+    public function getMultipleClient(string $email): array
+    {
+        return array_filter(
+            $this->config['settings']['clients'],
+            static fn($client) => preg_match("/$email/", $client['email'])
+        );
     }
 
     public function getClients(): array
