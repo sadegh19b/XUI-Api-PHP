@@ -199,6 +199,69 @@ class Api
         return $this->request('updateInbound', $config->getArray());
     }
 
+    /**
+     * Get client statistics for a specific inbound and email.
+     *
+     * @param int $inboundId The ID of the inbound to get statistics for.
+     * @param string $email The email address to get statistics for.
+     * @return array The client statistics for the given inbound and email, or an empty array if no match is found.
+     */
+    public function getClientStats(int $inboundId, string $email): array
+    {
+        $response = $this->getInbounds();
+
+        if (! $this->isResponseSuccess()) {
+            return [];
+        }
+
+        foreach ($response as $item) {
+            if ($item['id'] !== $inboundId) {
+                continue;
+            }
+
+            foreach ($item['clientStats'] as $clientStats) {
+                if ($clientStats['email'] === $email) {
+                    return $clientStats;
+                }
+            }
+        }
+
+        return [];
+    }
+
+    /**
+     * Get multiple clients statistics that match the given filters.
+     *
+     * @param  array  $filters  An array of filters, where each filter is an associative array with keys 'inboundId' and 'email'.
+     *                          e.g. [['inboundId' => 1, 'email' =>'test1@domain.com'], ['inboundId' => 2, 'email' =>'test2@domain.com']]
+     * @return array An array of client statistics that match the given filters, or an empty array if no match is found.
+     */
+    public function getMultipleClientStats(array $filters): array
+    {
+        $response = $this->getInbounds();
+
+        if (! $this->isResponseSuccess()) {
+            return [];
+        }
+
+        $results = [];
+        foreach ($response as $item) {
+            if (! in_array($item['id'], array_column($filters, 'inboundId'))) {
+                continue;
+            }
+
+            foreach ($item['clientStats'] as $clientStats) {
+                if (! in_array($clientStats['email'], array_column($filters, 'email'))) {
+                    continue;
+                }
+
+                $results[] = $clientStats;
+            }
+        }
+
+        return $results;
+    }
+
     private function login(): void
     {
         $body = [
