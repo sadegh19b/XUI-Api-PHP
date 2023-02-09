@@ -101,4 +101,20 @@ class Helper
     {
         return ($value !== 0) ? $value * self::OneGigaBytes : 0;
     }
+
+    public static function convertBytesToGB(int $bytes): float
+    {
+        return $bytes / ((10 ** 9) ** 1);
+    }
+
+    public static function formatSizeUnits(int $bytes): string
+    {
+        $units = ['B', 'KB', 'MB', 'GB', 'TB', 'PB'];
+
+        for ($i = 0; $bytes >= 1024 && $i < count($units) - 1; $i++) {
+            $bytes /= 1024;
+        }
+
+        return round($bytes, 2).$units[$i];
+    }
 }
