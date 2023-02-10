@@ -341,7 +341,7 @@ class Api
 
     private function init(): void
     {
-        if (!file_exists($this->cookiePath) || empty(file_get_contents($this->cookiePath))) {
+        if (!file_exists($this->cookiePath) || empty(json_decode(file_get_contents($this->cookiePath), true))) {
             file_put_contents($this->cookiePath, '[]');
 
             $this->login();
