@@ -24,11 +24,24 @@ class Helper
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
-    public static function generateLink(ConfigBuilder $config, string $hostDomain, ?string $email, string $customRemark = ''): string
+    /**
+     * @param  ConfigBuilder  $config
+     * @param  array  $hostData  e.g. ['address' => '8.8.8.8', 'port' => '2020', 'host' => 'p1.test.com']
+     * @param  string|null  $email
+     * @param  string  $customRemark
+     *
+     * @return string
+     * @throws \Exception
+     */
+    public static function generateLink(ConfigBuilder $config, array $hostData, ?string $email, string $customRemark = ''): string
     {
+        if (! isset($hostData['address'])) {
+            throw new \Exception('The hostData argument `address` index is missing!');
+        }
+
         $configObject = $config->getObject(false);
         $client = $config->getClient($email);
-        $hostDomain = strtok(clean_domain($hostDomain), ':');
+        $address = strtok(clean_domain($hostData['address']), ':');
         $remark = ($customRemark !== '') ? $customRemark : $configObject->remark;
 
         $uniqueId = isset($configObject->id)
@@ -37,23 +50,26 @@ class Helper
 
         if (isset($configObject->id)) {
             $path = match ($configObject->streamSettings->network) {
-                'tcp' => $configObject->streamSettings->tcpSettings->header->request->path[0] ?? '',
-                'ws' => $configObject->streamSettings->wsSettings->path ?? '',
+                'tcp' => $configObject->streamSettings->tcpSettings->header->request->path[0] ?? '/',
+                'ws' => $configObject->streamSettings->wsSettings->path ?? '/',
             };
 
-            $host = match ($configObject->streamSettings->network) {
-                'tcp' => $configObject->streamSettings->tcpSettings->header->request->headers->Host[0] ?? '',
-                'ws' => $configObject->streamSettings->wsSettings->headers->Host ?? '',
-            };
+            $host = $hostData['host'] ?? null;
+            if (empty($host)) {
+                $host = match ($configObject->streamSettings->network) {
+                    'tcp' => $configObject->streamSettings->tcpSettings->header->request->headers->Host[0] ?? '',
+                    'ws' => $configObject->streamSettings->wsSettings->headers->Host ?? '',
+                };
+            }
 
             $headerType = match ($configObject->streamSettings->network) {
-                'tcp' => $configObject->streamSettings->tcpSettings->header->type ?? '',
-                'ws' => $configObject->streamSettings->wsSettings->header->type ?? '',
+                'tcp' => $configObject->streamSettings->tcpSettings->header->type ?? 'none',
+                'ws' => $configObject->streamSettings->wsSettings->header->type ?? 'none',
             };
 
             $vlessStreamSettings = match ($configObject->streamSettings->network) {
-                'tcp' => "&path={$path}&host={$host}&headerType={$headerType}",
-                'ws' => "&path={$path}&host={$host}",
+                'tcp' => "&path={$path}&host={$host}&sni={$host}&headerType={$headerType}",
+                'ws' => "&path={$path}&host={$host}&sni={$host}",
             };
         }
 
@@ -62,8 +78,8 @@ class Helper
                 '%s://%s@%s:%s?type=%s&security=%s%s#%s',
                 $configObject->protocol,
                 $uniqueId,
-                $hostDomain,
-                $configObject->port,
+                $address,
+                $hostData['port'] ?? $configObject->port,
                 $configObject->streamSettings->network,
                 $configObject->streamSettings->security,
                 $vlessStreamSettings ?? '',
@@ -76,14 +92,16 @@ class Helper
                     json_encode([
                         'v' => '2',
                         'ps' => $remark,
-                        'add' => $hostDomain,
-                        'port' => $configObject->port,
+                        'add' => $address,
+                        'port' => $hostData['port'] ?? $configObject->port,
                         'id' => $uniqueId,
                         'aid' => $client['alterId'] ?? 0,
                         'net' => $configObject->streamSettings->network,
                         'type' => $headerType ?? 'none',
-                        'host' => $host ?? '',
-                        'path' => $path ?? '',
+                        'sni' => $hostData['host'] ?? $host ?? '',
+                        'host' => $hostData['host'] ?? $host ?? '',
+                        "scy" => "auto",
+                        'path' => $path ?? '/',
                         'tls' => $configObject->streamSettings->security
                     ], JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT)
                 )
@@ -91,19 +109,19 @@ class Helper
         };
     }
 
-    public static function calculateExpiryTimeInDays(int $value): float|int
+    public static function calculateExpiryTimeInDays(int $days): float|int
     {
-        return ($value !== 0) ? floor(microtime(true) * 1000) + (864000 * $value * 100) : 0;
+        return ($days !== 0) ? floor(microtime(true) * 1000) + (864000 * $days * 100) : 0;
     }
 
-    public static function calculateVolumeSizeInGB(int $value): float|int
+    public static function calculateVolumeSizeInGB(int $gigabytes): float|int
     {
-        return ($value !== 0) ? $value * self::OneGigaBytes : 0;
+        return ($gigabytes !== 0) ? $gigabytes * self::OneGigaBytes : 0;
     }
 
     public static function convertBytesToGB(int $bytes): float
     {
-        return $bytes / ((10 ** 9) ** 1);
+        return ($bytes !== 0) ? $bytes / self::OneGigaBytes : 0;
     }
 
     public static function formatSizeUnits(int $bytes): string
