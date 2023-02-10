@@ -39,7 +39,7 @@ class Api
         'deleteInbound' => 'POST',
     ];
 
-    public function __construct(string $host, string $username, string $password)
+    public function __construct(string $host, string $username, string $password, bool $freshLogin = false)
     {
         $this->hostDomain = strtok(clean_domain($host), ':');
         $this->hostUrl = $host;
@@ -49,7 +49,7 @@ class Api
         $this->configBuilder = (new ConfigBuilder);
         $this->guzzleHttp = (new GuzzleHttp\Client);
 
-        $this->init();
+        $freshLogin ? $this->freshLogin() : $this->init();
     }
 
     public function getInbounds(): array
@@ -354,6 +354,13 @@ class Api
         if ($cookieData['Domain'] !== $this->hostDomain || time() > $cookieData['Expires']) {
             $this->login();
         }
+    }
+
+    private function freshLogin(): void
+    {
+        file_put_contents($this->cookiePath, '[]');
+
+        $this->login();
     }
 
     private function getMethod(string $name): string
