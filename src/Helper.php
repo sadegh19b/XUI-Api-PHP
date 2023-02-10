@@ -24,13 +24,12 @@ class Helper
         return vsprintf('%s%s-%s-%s-%s-%s%s%s', str_split(bin2hex($data), 4));
     }
 
-    public static function generateLink(ConfigBuilder $config, string $hostDomain, ?string $email, string $remarkAppend = ''): string
+    public static function generateLink(ConfigBuilder $config, string $hostDomain, ?string $email, string $customRemark = ''): string
     {
         $configObject = $config->getObject(false);
         $client = $config->getClient($email);
         $hostDomain = strtok(clean_domain($hostDomain), ':');
-        $remark = $configObject->remark;
-        $remark .= ($remarkAppend !== '') ? '-'.$remarkAppend : '';
+        $remark = ($customRemark !== '') ? $customRemark : $configObject->remark;
 
         $uniqueId = isset($configObject->id)
             ? $client['id']
